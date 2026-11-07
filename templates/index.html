@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="local-token" content="{{ token }}"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>视频保存 · VideoLibrary</title><link rel="stylesheet" href="/static/style.css"></head>
+<body><main class="shell">
+<header class="header"><div class="brand"><span class="brand-icon">↧</span><div><strong>视频保存</strong><small>VideoLibrary · Windows 本地工具</small></div></div><span class="status"><span class="dot"></span> 本地运行</span></header>
+<section class="hero"><h1>保存视频到电脑</h1><p>粘贴抖音、B站或 YouTube 链接，保存有权使用的素材。</p></section>
+<section class="panel"><label for="url">视频链接</label><div class="entry"><input type="text" id="url" autocomplete="off" spellcheck="false" placeholder="粘贴视频链接或分享文字"><button id="probe" class="primary">识别视频</button></div><div class="tools"><button id="clipboard">读取剪贴板</button><label class="inline"><input type="checkbox" id="autoClipboard">允许打开或聚焦时读取一次</label></div><label class="auth-option" for="useFirefox"><input type="checkbox" id="useFirefox"><span><strong>YouTube：使用 Firefox 登录会话</strong><small>仅在需要时手动勾选。默认匿名识别；需要验证时手动授权。使用已有 Firefox 登录，无需重新查找视频；若读取被占用，再退出 Firefox 重试。Cookies 不导出、不写入项目日志。</small></span></label><p class="hint" id="message" role="status" aria-live="polite"></p>
+<div id="result" class="result hidden"><div class="result-title"><div><span class="kicker">已识别视频</span><h2 id="videoTitle"></h2><p id="videoUploader" class="subline"></p></div><span class="check">✓</span></div>
+<label for="quality">选择画质</label><select id="quality"></select><p class="subline">列表只显示来源实际报告的分辨率。部分内容可能受访问权限或平台限制。</p><button id="download" class="primary wide">保存到电脑</button></div>
+<div id="progress" class="progress hidden"><div class="progress-line"><strong id="taskTitle">正在处理</strong><span id="percent"></span></div><div class="track"><div id="bar"></div></div><p id="taskMessage" class="subline"></p></div>
+</section>
+<footer><div><span>保存位置</span><strong id="saveDir">正在读取…</strong></div><div id="ffmpegState" class="footer-note"></div></footer><details class="panel settings"><summary>保存位置与服务</summary><label for="directory">保存目录（完整路径）</label><div class="entry"><input id="directory" type="text"><button id="setDir">保存设置</button></div><div class="tools"><button id="openDir">打开保存文件夹</button><button id="stop">退出后台服务</button></div><p class="subline">开机自启请使用 manage.ps1 明确启用；下载期间不能退出或修改目录。</p></details>
+</main><script src="/static/app.js"></script></body></html>

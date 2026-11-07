@@ -1,0 +1,28 @@
+启动修复验收（2026-11-08）
+
+本次只修改 manage.ps1、start.bat、open.vbs。新增启动日志；后台使用现有 python.exe -u + 隐藏窗口 + 输出重定向。start.bat 成功时自动结束，失败时保留窗口。open.vbs 失败弹出日志位置。桌面快捷方式仍由用户执行 Shortcut 创建。
+
+manage.ps1 已保存 UTF-8 BOM，Windows PowerShell 5.1.19041.6456 实际语法解析通过。BOM 字节检查通过；app.py、HTML、CSS、JS 修改前后 SHA256 一致。未启动 Python、未创建快捷方式或计划任务，未进行后台运行实测。
+
+在普通 Windows PowerShell 5.1 中执行：
+
+cd 'D:\Creator\视频下载\VideoLibrary_Windows_v1.0_fixed\video-library-mvp'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\manage.ps1 -Action Status
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\manage.ps1 -Action Start
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\manage.ps1 -Action Start
+Get-NetTCPConnection -LocalPort 8765 -State Listen
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\manage.ps1 -Action Open
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\manage.ps1 -Action Shortcut
+
+预期：已有手动启动服务时直接连接，不启动第二实例；服务关闭时 Start 隐藏启动且不开浏览器；Open 和 start.bat 打开浏览器。重复 Start 仅一个监听进程；其他服务占用端口则明确报错。双击新桌面快捷方式验证同样行为。
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\manage.ps1 -Action Stop
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\manage.ps1 -Action Status
+
+下载期间 Stop 应拒绝退出。正常退出后再次双击快捷方式验证冷启动。
+
+日志：项目 logs\startup.log 记录启动调用和管理错误；每次启动独立的 *.stdout.log、*.stderr.log 保留 Python 启动错误。不会自动删除旧日志。若后台超时，先检查日志和端口，脚本不会强杀可能仍在运行的进程。不要公开分享未经检查的完整日志。
+
+ExecutionPolicy Bypass 仅作用于该次 PowerShell 子进程；没有 Set-ExecutionPolicy，不永久修改策略，不修改安全防护；组织组策略仍可能限制脚本执行。未启用自启；仅明确执行 EnableStartup 才注册任务。原有已注册任务不会自动更新；如需要更新其调用参数，请用户明确重新运行 EnableStartup。
+
+注意：此前 V1.2-验收说明.md 中 start.bat 为前台诊断及 pythonw 的描述由本文替代。现在统一管理启动；直接诊断后端仍用 .\.venv\Scripts\python.exe .\app.py。

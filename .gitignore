@@ -1,0 +1,46 @@
+# Python virtual environment and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local settings and credentials - never commit
+.env
+*.env
+settings.json
+settings.tmp
+*.pem
+*.key
+*cookies*
+cookies.txt
+*.cookies
+
+# Logs
+logs/
+*.log
+
+# Downloaded videos and partial downloads - local only
+downloads/
+*.mp4
+*.mkv
+*.webm
+*.mp3
+*.m4a
+*.mov
+*.avi
+*.part
+*.ytdl
+*.ytdl.json
+
+# Backups and local working copies
+backup_*/
+backup/
+*.bak
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

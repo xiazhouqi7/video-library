@@ -1,0 +1,26 @@
+const $=s=>document.querySelector(s);
+const token=document.querySelector('meta[name=local-token]').content;
+const headers={'X-Local-Token':token};
+const state={url:'',choices:[],currentJob:null,authUsed:false};
+function message(s){$('#message').textContent=s||''}
+function busy(b){$('#url').disabled=b;$('#clipboard').disabled=b;$('#setDir').disabled=b;$('#probe').disabled=b;$('#download').disabled=b;$('#useFirefox').disabled=b}
+function resetProgress(){if(state.currentJob)return;$('#progress').classList.add('hidden');$('#taskTitle').textContent='正在处理';$('#taskMessage').textContent='';$('#percent').textContent='';$('#bar').style.width='0%'}
+function usingFirefox(){return $('#useFirefox').checked}
+async function post(url,payload){const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',...headers},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok)throw new Error(data.error||'请求失败');return data}
+async function probe(){const url=extract($('#url').value);if(!url){message('未找到支持的视频链接。');return;}state.url='';$('#result').classList.add('hidden');resetProgress();message('正在识别视频信息…');busy(true);try{const authUsed=usingFirefox();const data=await post('/api/probe',{url,use_firefox:authUsed});state.authUsed=authUsed;state.url=url;state.choices=data.choices;$('#videoTitle').textContent=data.title;$('#videoUploader').textContent=data.uploader;$('#quality').replaceChildren(...data.choices.map(item=>{const option=document.createElement('option');option.value=item.value;option.textContent=item.label;return option}));$('#result').classList.remove('hidden');message('识别成功，可以选择画质。')}catch(e){message(e.message)}finally{busy(false)}}
+async function save(){if(!state.url)return;resetProgress();busy(true);message('正在启动保存任务…');try{const data=await post('/api/download',{url:state.url,quality:$('#quality').value,use_firefox:state.authUsed});state.currentJob=data.job_id;$('#progress').classList.remove('hidden');$('#bar').style.width='0%';poll(data.job_id)}catch(e){message(e.message);busy(false)}}
+async function poll(id){while(state.currentJob===id){try{const r=await fetch('/api/jobs/'+encodeURIComponent(id),{headers});const job=await r.json();if(!r.ok)throw Error(job.error||'无法读取任务');$('#taskTitle').textContent=job.status==='done'?'保存完成':job.status==='error'?'保存失败':'正在处理';$('#taskMessage').textContent=job.status==='done'?[job.message,job.path,job.size!=null?(job.size/1024/1024).toFixed(1)+' MB':'',job.resolution?'真实分辨率：'+job.resolution:''].filter(Boolean).join(' · '):job.message;$('#percent').textContent=job.percent==null?'':`${job.percent}%`;$('#bar').style.width=(job.percent||0)+'%';if(job.status==='done'||job.status==='error'){message(job.status==='done'?'已保存到下方显示的文件夹。':job.message);state.currentJob=null;busy(false);return}}catch(e){state.currentJob=null;resetProgress();message('任务状态连接中断，服务可能仍在下载；请勿重复提交。'+e.message);busy(false);return}await new Promise(resolve=>setTimeout(resolve,900))}}
+async function init(){try{const r=await fetch('/api/config',{headers});const data=await r.json();$('#saveDir').textContent=data.save_dir;$('#directory').value=data.save_dir;$('#ffmpegState').textContent=data.ffmpeg_ready?'FFmpeg 已就绪':'尚未检测到 FFmpeg，请先安装'}catch(e){$('#saveDir').textContent='读取失败'}}
+$('#probe').addEventListener('click',probe);$('#download').addEventListener('click',save);$('#url').addEventListener('input',()=>{state.url='';$('#result').classList.add('hidden');resetProgress();message('')});$('#useFirefox').addEventListener('change',()=>{state.url='';$('#result').classList.add('hidden');resetProgress();message('已切换识别方式，请重新点击「识别视频」。')});$('#url').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();probe()}});init();
+
+function extract(text){for(const m of text.matchAll(/https:\/\/[^\s<>"，。！；]+/g)){try{const u=new URL(m[0].replace(/[)）]+$/,''));if(!u.username&&!u.password&&!u.port&&['youtube.com','youtu.be','bilibili.com','b23.tv','douyin.com','iesdouyin.com'].some(d=>u.hostname===d||u.hostname.endsWith('.'+d)))return u.href}catch{}}return ''}
+let lastClipboard='';
+async function readClipboard(){if(state.currentJob||$('#probe').disabled)return;try{const url=extract(await navigator.clipboard.readText());if(!url){message('剪贴板没有支持的视频链接，请手动粘贴。');return}if(url===lastClipboard)return;lastClipboard=url;$('#url').value=url;state.url='';$('#result').classList.add('hidden');resetProgress();message('已发现视频链接，点击「识别视频」继续。')}catch{message('浏览器未允许读取剪贴板，请点击读取按钮或手动粘贴。')}}
+$('#clipboard').onclick=readClipboard;
+try{$('#autoClipboard').checked=localStorage.getItem('autoClipboard')==='yes'}catch{}
+$('#autoClipboard').onchange=()=>{try{localStorage.setItem('autoClipboard',$('#autoClipboard').checked?'yes':'no')}catch{}if($('#autoClipboard').checked)readClipboard()};
+window.addEventListener('focus',()=>{if($('#autoClipboard').checked)readClipboard()});
+if($('#autoClipboard').checked)readClipboard();
+$('#setDir').onclick=async()=>{try{const d=await post('/api/settings',{save_dir:$('#directory').value});$('#saveDir').textContent=d.save_dir;message('保存目录已更新并持久化。')}catch(e){message(e.message)}};
+$('#openDir').onclick=()=>post('/api/open-folder',{}).catch(e=>message(e.message));
+$('#stop').onclick=async()=>{if(!confirm('退出 VideoLibrary 后台服务？'))return;try{await post('/api/stop',{});message('退出请求已发送，可关闭网页。')}catch(e){message(e.message)}};
